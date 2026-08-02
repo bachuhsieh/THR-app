@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="THR 資料庫" />
+<title>THR 病人資料庫</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:#ffffff;--bg2:#f5f5f5;--bg3:#ebebeb;
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#999;
+  --border:#e0e0e0;--border2:#d0d0d0;
+  --accent:#1a1a1a;--accent-fg:#ffffff;
+  --danger:#c0392b;--danger-bg:#fdecea;
+  --radius:10px;--radius-sm:7px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;--border:#3a3a3c;--border2:#48484a;--accent:#f2f2f7;--accent-fg:#1c1c1e;}
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);font-size:16px;}
+.app{max-width:600px;margin:0 auto;padding:0 0 80px;}
+.header{padding:16px 16px 0;}
+.header h1{font-size:22px;font-weight:700;}
+.header p{font-size:13px;color:var(--text2);margin-top:2px;}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:0.5px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom);}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;font-size:10px;color:var(--text3);cursor:pointer;gap:3px;transition:color 0.15s;}
+.tab-item.active{color:var(--accent);}
+.tab-item svg{width:22px;height:22px;}
+.section{display:none;padding:16px;}
+.section.active{display:block;}
+.sec-hdr{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;margin:20px 0 8px;}
+.sec-hdr:first-child{margin-top:8px;}
+.field{margin-bottom:12px;}
+.field label{font-size:13px;color:var(--text2);display:block;margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-size:16px;font-family:inherit;appearance:none;-webkit-appearance:none;}
+.field textarea{resize:none;height:70px;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.dur-badge{display:inline-block;padding:8px 14px;background:var(--bg2);border-radius:var(--radius-sm);font-size:15px;font-weight:600;color:var(--text);margin-top:4px;border:1px solid var(--border);}
+.toggle-wrap{display:flex;gap:6px;flex-wrap:wrap;}
+.tgl{padding:8px 14px;border-radius:99px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:14px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.tgl.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+.btn-save{width:100%;padding:14px;background:var(--accent);color:var(--accent-fg);border:none;border-radius:var(--radius);font-size:16px;font-weight:600;cursor:pointer;margin-top:16px;}
+.btn-clear{width:100%;padding:12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:var(--radius);font-size:15px;cursor:pointer;margin-top:8px;}
+.form-msg{text-align:center;font-size:14px;color:#27ae60;margin-top:10px;display:none;}
+.search-bar{display:flex;gap:8px;margin-bottom:14px;}
+.search-bar input{flex:1;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-size:16px;}
+.btn-export{padding:10px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:14px;cursor:pointer;white-space:nowrap;}
+.card{background:var(--bg2);border-radius:var(--radius);padding:13px 14px;margin-bottom:10px;cursor:pointer;border:1px solid var(--border);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.card-name{font-size:16px;font-weight:600;}
+.card-sub{font-size:13px;color:var(--text2);margin-top:4px;}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.tag{font-size:11px;padding:3px 9px;border-radius:99px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border);}
+.tag.tl{background:#E6F1FB;color:#0C447C;}
+.tag.tr{background:#FAEEDA;color:#633806;}
+.tag.tb{background:#E1F5EE;color:#085041;}
+.tag.tc{background:#FCEBEB;color:#791F1F;}
+.tag.td{background:#EEEDFE;color:#3C3489;}
+.tag.tg{background:#EAF3DE;color:#27500A;}
+.tag.tloc{background:#F0E6FB;color:#4A1A7C;}
+.empty{text-align:center;padding:50px 20px;color:var(--text3);font-size:15px;}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:12px 14px;}
+.metric .ml{font-size:12px;color:var(--text2);margin-bottom:4px;}
+.metric .mv{font-size:22px;font-weight:700;}
+.metric .ms{font-size:12px;color:var(--text2);margin-top:2px;}
+.chart-wrap{background:var(--bg2);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+.chart-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em;}
+.chart-wrap canvas{max-height:180px;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;}
+.overlay.open{display:flex;align-items:flex-end;}
+.sheet{background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom);}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:99px;margin:10px auto 0;}
+.sheet-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:0.5px solid var(--border);}
+.sheet-header h2{font-size:17px;font-weight:600;}
+.sheet-close{font-size:24px;color:var(--text2);background:none;border:none;cursor:pointer;line-height:1;padding:0 4px;}
+.sheet-body{padding:12px 16px;}
+.dgroup{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;padding:12px 0 4px;}
+.drow{display:flex;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:14px;}
+.drow .dl{color:var(--text2);min-width:120px;font-size:13px;flex-shrink:0;}
+.sheet-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px;}
+.btn-edit{padding:13px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer;color:var(--text);}
+.btn-del{padding:13px;background:var(--danger-bg);border:1px solid #f5c6c6;border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer;color:var(--danger);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h1>THR 病人資料庫</h1>
+        <p>Total Hip Replacement Registry</p>
+      </div>
+      <div id="sync-status" style="font-size:12px;color:var(--text2);margin-top:6px;text-align:right;">⏳ 載入中…</div>
+    </div>
+  </div>
+
+  <div class="section active" id="tab-list">
+    <div class="search-bar" style="margin-top:14px;">
+      <input type="search" id="search-input" placeholder="搜尋姓名、病歷號…" oninput="renderList()" />
+      <button class="btn-export" onclick="exportCSV()">匯出 CSV</button>
+    </div>
+    <div id="patient-list"></div>
+  </div>
+
+  <div class="section" id="tab-add">
+    <div id="form-mode-label" style="font-size:14px;color:var(--text2);margin-bottom:4px;margin-top:8px;">新增一位 THR 病人</div>
+
+    <div class="sec-hdr">基本資料</div>
+    <div class="field"><label>姓名</label><input type="text" id="f-name" placeholder="王小明" /></div>
+    <div class="row2">
+      <div class="field"><label>病歷號（彰基）</label><input type="text" id="f-pid-cch" placeholder="A12345678" /></div>
+      <div class="field"><label>病歷號（員林）</label><input type="text" id="f-pid-yl" /></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>病歷號（鹿港）</label><input type="text" id="f-pid-lg" /></div>
+      <div class="field"><label>病歷號（漢銘）</label><input type="text" id="f-pid-hm" /></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>年齡</label><input type="number" id="f-age" placeholder="68" min="1" max="120" /></div>
+      <div class="field"><label>性別</label>
+        <select id="f-sex"><option value="">請選擇</option><option>女</option><option>男</option><option>其他</option></select>
+      </div>
+    </div>
+    <div class="field"><label>代工手術</label>
+      <div class="toggle-wrap" id="proxy-group">
+        <button class="tgl on" onclick="tgl('proxy-group',this,'f-proxy')">無</button>
+        <button class="tgl" onclick="tgl('proxy-group',this,'f-proxy')">陳志輝</button>
+        <button class="tgl" onclick="tgl('proxy-group',this,'f-proxy')">李翼安</button>
+        <button class="tgl" onclick="tgl('proxy-group',this,'f-proxy')">羅佑晟</button>
+      </div>
+      <input type="hidden" id="f-proxy" value="無" />
+    </div>
+
+    <div class="sec-hdr">術前評估</div>
+    <div class="field"><label>診斷</label>
+      <div class="toggle-wrap" id="dx-group">
+        <button class="tgl" onclick="tgl('dx-group',this,'f-dx')">OA</button>
+        <button class="tgl" onclick="tgl('dx-group',this,'f-dx')">AVN</button>
+        <button class="tgl" onclick="tgl('dx-group',this,'f-dx')">DDH</button>
+        <button class="tgl" onclick="tgl('dx-group',this,'f-dx')">Fracture</button>
+        <button class="tgl" onclick="tgl('dx-group',this,'f-dx')">RA</button>
+        <button class="tgl" onclick="tgl('dx-group',this,'f-dx')">Septic</button>
+        <button class="tgl" onclick="tgl('dx-group',this,'f-dx')">Revision</button>
+      </div>
+      <input type="hidden" id="f-dx" />
+    </div>
+    <div class="field"><label>Leg Length Discrepancy（cm）</label><input type="number" id="f-lld" placeholder="例：1.5" step="0.1" /></div>
+
+    <div class="sec-hdr">手術資訊</div>
+    <div class="field"><label>手術類型</label>
+      <div class="toggle-wrap" id="surgtype-group">
+        <button class="tgl on" onclick="tglSurgType(this,'THA')">THA</button>
+        <button class="tgl" onclick="tglSurgType(this,'THA-DM')">THA - Dual Mobility</button>
+        <button class="tgl" onclick="tglSurgType(this,'Hemi')">Hemiarthroplasty</button>
+      </div>
+      <input type="hidden" id="f-surgtype" value="THA" />
+    </div>
+    <div class="field"><label>開刀地點</label>
+      <div class="toggle-wrap" id="location-group">
+        <button class="tgl" onclick="tgl('location-group',this,'f-location')">彰基</button>
+        <button class="tgl" onclick="tgl('location-group',this,'f-location')">員林</button>
+        <button class="tgl" onclick="tgl('location-group',this,'f-location')">鹿港</button>
+        <button class="tgl" onclick="tgl('location-group',this,'f-location')">漢銘</button>
+      </div>
+      <input type="hidden" id="f-location" />
+    </div>
+    <div class="row2">
+      <div class="field"><label>側別</label>
+        <select id="f-side"><option value="">請選擇</option><option>左髖</option><option>右髖</option><option value="雙髖（同期）">雙髖（同期）</option></select>
+      </div>
+      <div class="field"><label>Approach</label>
+        <select id="f-approach">
+          <option value="">請選擇</option>
+          <option>Direct Anterior</option>
+          <option>Anterolateral</option>
+          <option>Lateral (Hardinge)</option>
+          <option>Posterolateral</option>
+          <option>其他</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>手術方式</label>
+      <div class="toggle-wrap" id="robotic-group">
+        <button class="tgl on" onclick="tgl('robotic-group',this,'f-robotic')">一般</button>
+        <button class="tgl" onclick="tgl('robotic-group',this,'f-robotic')">Robotic</button>
+      </div>
+      <input type="hidden" id="f-robotic" value="一般" />
+    </div>
+    <div class="row2">
+      <div class="field"><label>手術開始</label><input type="datetime-local" id="f-start" oninput="calcDur()" /></div>
+      <div class="field"><label>手術結束</label><input type="datetime-local" id="f-end" oninput="calcDur()" /></div>
+    </div>
+    <div class="field"><label>手術時間</label><div class="dur-badge" id="dur-display">— 分鐘</div></div>
+
+    <div class="sec-hdr">植入物廠牌</div>
+    <div class="field"><label>廠牌</label>
+      <div class="toggle-wrap" id="brand-group">
+        <button class="tgl" onclick="tglBrand(this,'Zimmer')">Zimmer</button>
+        <button class="tgl" onclick="tglBrand(this,'United')">United</button>
+        <button class="tgl" onclick="tglBrand(this,'Stryker')">Stryker</button>
+      </div>
+      <input type="hidden" id="f-brand" />
+    </div>
+
+    <div class="sec-hdr">Implant Size</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+        <div style="font-size:12px;font-weight:600;color:#0C447C;margin-bottom:10px;text-align:center;background:#E6F1FB;border-radius:var(--radius-sm);padding:4px;">左髖 L</div>
+        <div class="field cup-field"><label>Cup (mm)</label>
+          <select id="f-cup-l"><option value="">—</option><option>46</option><option>48</option><option>50</option><option>52</option><option>54</option><option>56</option><option>58</option><option>60</option><option>62</option><option>64</option><option>66</option></select>
+        </div>
+        <div class="field shell-field" style="display:none;"><label>Bipolar Shell (mm)</label>
+          <select id="f-shell-l"><option value="">—</option><option>39</option><option>41</option><option>43</option><option>45</option><option>47</option><option>49</option><option>51</option><option>53</option><option>55</option></select>
+        </div>
+        <div class="field"><label>Stem size</label>
+          <select id="f-stem-l"><option value="">—</option></select>
+        </div>
+        <div class="field"><label>Head (mm)</label>
+          <select id="f-head-l"><option value="">—</option><option>22</option><option>26</option><option>28</option><option>32</option><option>36</option><option>40</option><option>44</option></select>
+        </div>
+        <div class="field"><label>Neck length</label>
+          <select id="f-neck-l"><option value="">—</option><option>-3.5</option><option>0</option><option>+3.5</option><option>+7</option><option>+10.5</option><option>+14</option></select>
+        </div>
+        <div class="field liner-field"><label>Liner</label>
+          <select id="f-liner-l">
+            <option value="">—</option>
+            <option>HXLPE 標準</option>
+            <option>Vitamin E HXLPE</option>
+            <option>Ceramic</option>
+            <option>Constrained</option>
+          </select>
+        </div>
+        <div class="field dm-liner-field" style="display:none;"><label>DM Liner (外徑 mm)</label>
+          <select id="f-dm-liner-l"><option value="">—</option><option>38</option><option>42</option><option>46</option><option>50</option><option>54</option><option>58</option></select>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+        <div style="font-size:12px;font-weight:600;color:#633806;margin-bottom:10px;text-align:center;background:#FAEEDA;border-radius:var(--radius-sm);padding:4px;">右髖 R</div>
+        <div class="field cup-field"><label>Cup (mm)</label>
+          <select id="f-cup-r"><option value="">—</option><option>46</option><option>48</option><option>50</option><option>52</option><option>54</option><option>56</option><option>58</option><option>60</option><option>62</option><option>64</option><option>66</option></select>
+        </div>
+        <div class="field shell-field" style="display:none;"><label>Bipolar Shell (mm)</label>
+          <select id="f-shell-r"><option value="">—</option><option>39</option><option>41</option><option>43</option><option>45</option><option>47</option><option>49</option><option>51</option><option>53</option><option>55</option></select>
+        </div>
+        <div class="field"><label>Stem size</label>
+          <select id="f-stem-r"><option value="">—</option></select>
+        </div>
+        <div class="field"><label>Head (mm)</label>
+          <select id="f-head-r"><option value="">—</option><option>22</option><option>26</option><option>28</option><option>32</option><option>36</option><option>40</option><option>44</option></select>
+        </div>
+        <div class="field"><label>Neck length</label>
+          <select id="f-neck-r"><option value="">—</option><option>-3.5</option><option>0</option><option>+3.5</option><option>+7</option><option>+10.5</option><option>+14</option></select>
+        </div>
+        <div class="field liner-field"><label>Liner</label>
+          <select id="f-liner-r">
+            <option value="">—</option>
+            <option>HXLPE 標準</option>
+            <option>Vitamin E HXLPE</option>
+            <option>Ceramic</option>
+            <option>Constrained</option>
+          </select>
+        </div>
+        <div class="field dm-liner-field" style="display:none;"><label>DM Liner (外徑 mm)</label>
+          <select id="f-dm-liner-r"><option value="">—</option><option>38</option><option>42</option><option>46</option><option>50</option><option>54</option><option>58</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-hdr">手術細節</div>
+    <div class="field"><label>固定方式</label>
+      <div class="toggle-wrap" id="fixation-group">
+        <button class="tgl" onclick="tglFixation(this,'Cementless')">Cementless</button>
+        <button class="tgl" onclick="tglFixation(this,'Cemented')">Cemented</button>
+        <button class="tgl" onclick="tglFixation(this,'Hybrid')">Hybrid</button>
+      </div>
+      <input type="hidden" id="f-fixation" />
+    </div>
+    <div class="field"><label>Bearing 組合</label>
+      <div class="toggle-wrap" id="bearing-group">
+        <button class="tgl" onclick="tgl('bearing-group',this,'f-bearing')">Ceramic-Poly</button>
+        <button class="tgl" onclick="tgl('bearing-group',this,'f-bearing')">Metal-Poly</button>
+        <button class="tgl" onclick="tgl('bearing-group',this,'f-bearing')">Ceramic-Ceramic</button>
+      </div>
+      <input type="hidden" id="f-bearing" />
+    </div>
+
+    <div class="sec-hdr">自費品項用量</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:2px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+        <span style="font-size:14px;">Spongostan 止血粉</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="adjQty('q-spongostan',-1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">−</button>
+          <input type="number" id="q-spongostan" value="0" min="0" max="99" style="width:40px;text-align:center;padding:4px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg);font-size:15px;font-weight:600;" />
+          <button onclick="adjQty('q-spongostan',1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">+</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+        <span style="font-size:14px;">Surgicel 止血粉</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="adjQty('q-surgicel',-1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">−</button>
+          <input type="number" id="q-surgicel" value="0" min="0" max="99" style="width:40px;text-align:center;padding:4px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg);font-size:15px;font-weight:600;" />
+          <button onclick="adjQty('q-surgicel',1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">+</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+        <span style="font-size:14px;">1-O 魚骨線 MZSK401</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="adjQty('q-fish',-1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">−</button>
+          <input type="number" id="q-fish" value="0" min="0" max="99" style="width:40px;text-align:center;padding:4px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg);font-size:15px;font-weight:600;" />
+          <button onclick="adjQty('q-fish',1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">+</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+        <span style="font-size:14px;">4-O 羽毛線 SWB118</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="adjQty('q-feather',-1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">−</button>
+          <input type="number" id="q-feather" value="0" min="0" max="99" style="width:40px;text-align:center;padding:4px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--bg);font-size:15px;font-weight:600;" />
+          <button onclick="adjQty('q-feather',1)" style="width:28px;height:28px;border-radius:99px;border:1px solid var(--border2);background:var(--bg3);font-size:16px;cursor:pointer;">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-hdr">追蹤紀錄</div>
+    <div class="field"><label>GT Avulsion</label>
+      <div class="toggle-wrap" id="gtav-group">
+        <button class="tgl on" onclick="tgl('gtav-group',this,'f-gtav')">無</button>
+        <button class="tgl" onclick="tgl('gtav-group',this,'f-gtav')">有</button>
+      </div>
+      <input type="hidden" id="f-gtav" value="無" />
+    </div>
+    <div class="field"><label>併發症 / 追蹤紀錄</label><textarea id="f-complication" placeholder="例：脫位、感染、深層血管栓塞、無特殊…"></textarea></div>
+    <div class="field"><label>備註</label><textarea id="f-notes" placeholder="其他備注…"></textarea></div>
+
+    <button class="btn-save" onclick="savePatient()">儲存病人資料</button>
+    <button class="btn-clear" onclick="clearForm()">清除表單</button>
+    <div class="form-msg" id="form-msg">✓ 已成功儲存</div>
+  </div>
+
+  <div class="section" id="tab-stats">
+    <div class="metric-grid" id="metrics-row" style="margin-top:14px;"></div>
+    <div class="chart-wrap"><div class="chart-title">診斷分佈</div><canvas id="chart-dx"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">開刀地點</div><canvas id="chart-location"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">手術時間分佈（分鐘）</div><canvas id="chart-dur"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">廠牌分佈</div><canvas id="chart-brand"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Cup Size 分佈</div><canvas id="chart-cup"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Stem Size 分佈</div><canvas id="chart-stem"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Head Size 分佈</div><canvas id="chart-head"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Approach 方式</div><canvas id="chart-approach"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">固定方式</div><canvas id="chart-fixation"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">Bearing 組合</div><canvas id="chart-bearing"></canvas></div>
+    <div class="chart-wrap"><div class="chart-title">側別分佈</div><canvas id="chart-side"></canvas></div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab-item active" onclick="switchTab('list',0)" id="ti-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    列表
+  </div>
+  <div class="tab-item" onclick="switchTab('add',1)" id="ti-1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    新增
+  </div>
+  <div class="tab-item" onclick="switchTab('stats',2)" id="ti-2">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    統計
+  </div>
+</div>
+
+<div class="overlay" id="detail-overlay" onclick="closeSheetBg(event)">
+  <div class="sheet" id="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="sheet-title">病人詳細</h2>
+      <button class="sheet-close" onclick="closeSheet()">×</button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-actions">
+      <button class="btn-edit" onclick="editPatient()">✏️ 編輯</button>
+      <button class="btn-del" onclick="deletePatient()">🗑 刪除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY='thr-patients-v1';
+// !!! 提醒：之後要使用獨立的 Apps Script API，目前先用 localStorage
+const API_URL='https://script.google.com/macros/s/AKfycbykzeKhjWSWnZmx7Hy5x7Zth5QRZP7orhvrf9Ad9oZw0UTiSEDncHDAPiFhWILvuIe-4A/exec';
+let patients=[],editingId=null,viewingId=null,charts={};
+
+function setSyncUI(status,msg){
+  const el=document.getElementById('sync-status');
+  if(!el)return;
+  const icons={syncing:'⏳',ok:'✅',error:'⚠️',local:'💾'};
+  el.textContent=(icons[status]||'')+(msg?' '+msg:'');
+  el.style.color=status==='error'?'var(--danger)':status==='ok'?'#27ae60':'var(--text2)';
+}
+
+async function load(){
+  if(!API_URL){
+    setSyncUI('local','本機儲存');
+    try{const d=localStorage.getItem(STORE_KEY);if(d)patients=JSON.parse(d);}catch(e){}
+    renderList();renderStats();return;
+  }
+  setSyncUI('syncing','載入中…');
+  try{
+    const r=await fetch(API_URL+'?action=load',{redirect:'follow'});
+    const text=await r.text();
+    const data=JSON.parse(text);
+    if(Array.isArray(data)&&data.length>0){
+      patients=data;
+      localStorage.setItem(STORE_KEY,JSON.stringify(patients));
+    } else {
+      const d=localStorage.getItem(STORE_KEY);
+      if(d)patients=JSON.parse(d);
+    }
+    setSyncUI('ok','已同步');
+  }catch(e){
+    setSyncUI('error','離線，使用本機資料');
+    try{const d=localStorage.getItem(STORE_KEY);if(d)patients=JSON.parse(d);}catch(e2){}
+  }
+  renderList();renderStats();
+}
+
+async function save(){
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(patients));}catch(e){}
+  if(!API_URL){setSyncUI('local','本機儲存');return;}
+  setSyncUI('syncing','同步中…');
+  try{
+    const encoded=encodeURIComponent(JSON.stringify(patients));
+    const r=await fetch(API_URL+'?action=save&data='+encoded,{redirect:'follow'});
+    const text=await r.text();
+    const data=JSON.parse(text);
+    setSyncUI(data.ok?'ok':'error',data.ok?'已同步':'同步失敗');
+  }catch(e){
+    setSyncUI('error','網路錯誤，已存本機');
+  }
+}
+
+function adjQty(id,delta){
+  const el=document.getElementById(id);
+  el.value=Math.max(0,Math.min(99,(parseInt(el.value)||0)+delta));
+}
+function getImplants(){
+  return{
+    spongostan:parseInt(document.getElementById('q-spongostan').value)||0,
+    surgicel:parseInt(document.getElementById('q-surgicel').value)||0,
+    fish:parseInt(document.getElementById('q-fish').value)||0,
+    feather:parseInt(document.getElementById('q-feather').value)||0,
+  };
+}
+function setImplants(imp){
+  imp=imp||{};
+  document.getElementById('q-spongostan').value=imp.spongostan||0;
+  document.getElementById('q-surgicel').value=imp.surgicel||0;
+  document.getElementById('q-fish').value=imp.fish||0;
+  document.getElementById('q-feather').value=imp.feather||0;
+}
+function fmtImplants(imp){
+  if(!imp)return'—';
+  const labels={spongostan:'Spongostan',surgicel:'Surgicel',fish:'1-O魚骨線',feather:'4-O羽毛線'};
+  const used=Object.entries(imp).filter(([,v])=>v>0).map(([k,v])=>labels[k]+' ×'+v);
+  return used.length?used.join('、'):'無';
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+function tglBrand(btn,val){
+  tgl('brand-group',btn,'f-brand');
+  updateStemOptions(val,document.getElementById('f-fixation').value);
+}
+function tglFixation(btn,val){
+  tgl('fixation-group',btn,'f-fixation');
+  updateStemOptions(document.getElementById('f-brand').value,val);
+}
+function updateStemOptions(brand,fixation){
+  // Zimmer M/L Taper cementless: 4, 5, 6, 7.5, 9, 10, 11, 12.5, 13.5, 15, 16.25, 17.5, 20, 22.5
+  // Zimmer M/L Taper cemented: 6, 7.5, 9, 10, 11, 12.5, 13.5, 15
+  const zimmerCementless=['4','5','6','7.5','9','10','11','12.5','13.5','15','16.25','17.5','20','22.5'];
+  const zimmerCemented=['6','7.5','9','10','11','12.5','13.5','15'];
+  const genericStem=['1','2','3','4','5','6','7','8','9','10'];
+  let list=genericStem;
+  if(brand==='Zimmer'){
+    list = fixation==='Cemented' ? zimmerCemented : zimmerCementless;
+  }
+  const opts='<option value="">—</option>'+list.map(s=>'<option>'+s+'</option>').join('');
+  ['f-stem-l','f-stem-r'].forEach(id=>{
+    const el=document.getElementById(id);
+    const cur=el.value;
+    el.innerHTML=opts;
+    if([...el.options].some(o=>o.value===cur))el.value=cur;
+  });
+}
+
+function tglSurgType(btn,val){
+  tgl('surgtype-group',btn,'f-surgtype');
+  const isHemi=val==='Hemi';
+  const isDM=val==='THA-DM';
+  // Cup field: shown for THA and THA-DM, hidden for Hemi
+  document.querySelectorAll('.cup-field').forEach(el=>el.style.display=isHemi?'none':'');
+  // Shell field: only for Hemi
+  document.querySelectorAll('.shell-field').forEach(el=>el.style.display=isHemi?'':'none');
+  // Regular Liner: only for standard THA
+  document.querySelectorAll('.liner-field').forEach(el=>el.style.display=(!isHemi&&!isDM)?'':'none');
+  // DM Liner: only for THA-DM
+  document.querySelectorAll('.dm-liner-field').forEach(el=>el.style.display=isDM?'':'none');
+  // clear irrelevant fields
+  if(isHemi){
+    ['f-cup-l','f-cup-r','f-liner-l','f-liner-r','f-dm-liner-l','f-dm-liner-r'].forEach(id=>document.getElementById(id).value='');
+  } else if(isDM){
+    ['f-shell-l','f-shell-r','f-liner-l','f-liner-r'].forEach(id=>document.getElementById(id).value='');
+  } else {
+    ['f-shell-l','f-shell-r','f-dm-liner-l','f-dm-liner-r'].forEach(id=>document.getElementById(id).value='');
+  }
+}
+
+function calcDur(){
+  const s=document.getElementById('f-start').value;
+  const eEl=document.getElementById('f-end');
+  if(s&&!eEl.value)eEl.value=s;
+  const e=eEl.value;
+  const el=document.getElementById('dur-display');
+  if(s&&e){const d=Math.round((new Date(e)-new Date(s))/60000);el.textContent=d>0?d+' 分鐘':'時間有誤';}
+  else el.textContent='— 分鐘';
+}
+function getDur(p){
+  if(!p.start||!p.end)return null;
+  const d=Math.round((new Date(p.end)-new Date(p.start))/60000);
+  return d>0?d:null;
+}
+
+function tgl(grp,btn,hid){
+  document.querySelectorAll('#'+grp+' .tgl').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById(hid).value=btn.textContent.trim();
+}
+function setTgl(grp,hid,val){
+  document.getElementById(hid).value=val||'';
+  document.querySelectorAll('#'+grp+' .tgl').forEach(b=>b.classList.toggle('on',b.textContent.trim()===val));
+}
+
+function fmtDt(s){
+  if(!s)return'—';
+  const d=new Date(s);
+  return d.toLocaleDateString('zh-TW')+' '+d.toTimeString().slice(0,5);
+}
+
+function switchTab(tab,idx){
+  ['list','add','stats'].forEach((id,i)=>{
+    document.getElementById('tab-'+id).classList.toggle('active',id===tab);
+    document.getElementById('ti-'+i).classList.toggle('active',i===idx);
+  });
+  if(tab==='stats')renderStats();
+  window.scrollTo(0,0);
+}
+
+function renderList(){
+  const q=(document.getElementById('search-input').value||'').toLowerCase();
+  const f=patients.filter(p=>p.name.toLowerCase().includes(q)||[p.pidCch,p.pidYl,p.pidLg,p.pidHm].some(pid=>(pid||'').toLowerCase().includes(q)));
+  const el=document.getElementById('patient-list');
+  if(!f.length){el.innerHTML='<div class="empty">尚無病人資料<br><span style="font-size:13px;margin-top:6px;display:block;">點下方「新增」開始記錄</span></div>';return;}
+  el.innerHTML=f.map(p=>{
+    const sc=p.side==='左髖'?'tl':p.side==='右髖'?'tr':p.side==='雙髖（同期）'?'tb':'';
+    const dur=getDur(p);
+    const hasC=p.complication&&p.complication!=='無特殊';
+    const pids=[p.pidCch&&'彰基:'+p.pidCch,p.pidYl&&'員林:'+p.pidYl,p.pidLg&&'鹿港:'+p.pidLg,p.pidHm&&'漢銘:'+p.pidHm].filter(Boolean).join(' · ');
+    return`<div class="card" onclick="viewPatient('${p.id}')">
+      <div class="card-top">
+        <span class="card-name">${p.name}</span>
+        <span style="font-size:12px;color:var(--text2)">${p.start?fmtDt(p.start).split(' ')[0]:''}</span>
+      </div>
+      <div class="card-sub">${pids||'未填病歷號'}${p.age?' · '+p.age+'歲':''}${p.sex?' · '+p.sex:''}</div>
+      <div class="card-tags">
+        ${p.location?`<span class="tag tloc">${p.location}</span>`:''}
+        ${p.side?`<span class="tag ${sc}">${p.side}</span>`:''}
+        ${p.dx?`<span class="tag td">${p.dx}</span>`:''}
+        ${p.brand?`<span class="tag tg">${p.brand}</span>`:''}
+        ${(p.cupL||p.cupR)?`<span class="tag">Cup ${[p.cupL&&'L'+p.cupL,p.cupR&&'R'+p.cupR].filter(Boolean).join('/')}</span>`:''}
+        ${(p.headL||p.headR)?`<span class="tag">Head ${[p.headL&&'L'+p.headL,p.headR&&'R'+p.headR].filter(Boolean).join('/')}</span>`:''}
+        ${p.fixation?`<span class="tag">${p.fixation}</span>`:''}
+        ${dur?`<span class="tag td">${dur}min</span>`:''}
+        ${hasC?'<span class="tag tc">有併發症</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function viewPatient(id){
+  const p=patients.find(x=>x.id===id);if(!p)return;
+  viewingId=id;
+  const dur=getDur(p);
+  document.getElementById('sheet-title').textContent=p.name;
+  const dr=(l,v)=>`<div class="drow"><span class="dl">${l}</span><span>${v||'—'}</span></div>`;
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="dgroup">基本資料</div>
+    ${dr('病歷號（彰基）',p.pidCch)}${dr('病歷號（員林）',p.pidYl)}${dr('病歷號（鹿港）',p.pidLg)}${dr('病歷號（漢銘）',p.pidHm)}
+    ${dr('年齡',p.age?p.age+' 歲':'')}${dr('性別',p.sex)}${dr('代工手術',p.proxy||'無')}
+    <div class="dgroup">術前評估</div>
+    ${dr('診斷',p.dx)}${dr('LLD',p.lld?p.lld+' cm':'')}
+    <div class="dgroup">手術資訊</div>
+    ${dr('手術類型',p.surgtype||'THA')}${dr('開刀地點',p.location)}${dr('手術開始',fmtDt(p.start))}${dr('手術結束',fmtDt(p.end))}
+    ${dr('手術時間',dur?dur+' 分鐘':'—')}${dr('手術方式',p.robotic||'一般')}${dr('側別',p.side)}${dr('Approach',p.approach)}
+    <div class="dgroup">植入物</div>
+    ${dr('廠牌',p.brand)}
+    ${(p.surgtype==='Hemi')
+      ?`${dr('左髖 Bipolar Shell',p.shellL?p.shellL+'mm':'')}${dr('左髖 Stem',p.stemL)}${dr('左髖 Head',p.headL?p.headL+'mm':'')}${dr('左髖 Neck',p.neckL)}
+        ${dr('右髖 Bipolar Shell',p.shellR?p.shellR+'mm':'')}${dr('右髖 Stem',p.stemR)}${dr('右髖 Head',p.headR?p.headR+'mm':'')}${dr('右髖 Neck',p.neckR)}`
+      :(p.surgtype==='THA-DM')
+      ?`${dr('左髖 Cup',p.cupL?p.cupL+'mm':'')}${dr('左髖 DM Liner',p.dmLinerL?p.dmLinerL+'mm':'')}${dr('左髖 Stem',p.stemL)}${dr('左髖 Head',p.headL?p.headL+'mm':'')}${dr('左髖 Neck',p.neckL)}
+        ${dr('右髖 Cup',p.cupR?p.cupR+'mm':'')}${dr('右髖 DM Liner',p.dmLinerR?p.dmLinerR+'mm':'')}${dr('右髖 Stem',p.stemR)}${dr('右髖 Head',p.headR?p.headR+'mm':'')}${dr('右髖 Neck',p.neckR)}`
+      :`${dr('左髖 Cup',p.cupL?p.cupL+'mm':'')}${dr('左髖 Stem',p.stemL)}${dr('左髖 Head',p.headL?p.headL+'mm':'')}${dr('左髖 Neck',p.neckL)}${dr('左髖 Liner',p.linerL)}
+        ${dr('右髖 Cup',p.cupR?p.cupR+'mm':'')}${dr('右髖 Stem',p.stemR)}${dr('右髖 Head',p.headR?p.headR+'mm':'')}${dr('右髖 Neck',p.neckR)}${dr('右髖 Liner',p.linerR)}`
+    }
+    <div class="dgroup">手術細節</div>
+    ${dr('固定方式',p.fixation)}${dr('Bearing 組合',p.bearing)}${dr('自費品項',fmtImplants(p.implant))}
+    <div class="dgroup">追蹤紀錄</div>
+    ${dr('GT Avulsion',p.gtav||'無')}${dr('併發症/追蹤',p.complication)}${dr('備註',p.notes)}
+  `;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeSheetBg(e){if(e.target.id==='detail-overlay')closeSheet();}
+function closeSheet(){document.getElementById('detail-overlay').classList.remove('open');viewingId=null;}
+
+function editPatient(){
+  const p=patients.find(x=>x.id===viewingId);if(!p)return;
+  closeSheet();editingId=p.id;
+  const fv={'f-name':p.name,'f-pid-cch':p.pidCch,'f-pid-yl':p.pidYl,'f-pid-lg':p.pidLg,'f-pid-hm':p.pidHm,
+    'f-age':p.age,'f-sex':p.sex,'f-lld':p.lld,'f-start':p.start,'f-end':p.end,'f-side':p.side,'f-approach':p.approach,
+    'f-cup-l':p.cupL,'f-shell-l':p.shellL,'f-dm-liner-l':p.dmLinerL,'f-head-l':p.headL,'f-neck-l':p.neckL,'f-liner-l':p.linerL,
+    'f-cup-r':p.cupR,'f-shell-r':p.shellR,'f-dm-liner-r':p.dmLinerR,'f-head-r':p.headR,'f-neck-r':p.neckR,'f-liner-r':p.linerR,
+    'f-complication':p.complication,'f-notes':p.notes};
+  Object.entries(fv).forEach(([id,val])=>{document.getElementById(id).value=val||'';});
+  setTgl('proxy-group','f-proxy',p.proxy||'無');
+  setTgl('surgtype-group','f-surgtype',p.surgtype||'THA');
+  setTgl('dx-group','f-dx',p.dx);
+  setTgl('location-group','f-location',p.location);
+  setTgl('robotic-group','f-robotic',p.robotic||'一般');
+  setTgl('brand-group','f-brand',p.brand);
+  setTgl('fixation-group','f-fixation',p.fixation);
+  setTgl('bearing-group','f-bearing',p.bearing);
+  setTgl('gtav-group','f-gtav',p.gtav||'無');
+  updateStemOptions(p.brand||'',p.fixation||'');
+  document.getElementById('f-stem-l').value=p.stemL||'';
+  document.getElementById('f-stem-r').value=p.stemR||'';
+  // toggle field visibility for surg type
+  const st=p.surgtype||'THA';
+  const isHemi=st==='Hemi', isDM=st==='THA-DM';
+  document.querySelectorAll('.cup-field').forEach(el=>el.style.display=isHemi?'none':'');
+  document.querySelectorAll('.shell-field').forEach(el=>el.style.display=isHemi?'':'none');
+  document.querySelectorAll('.liner-field').forEach(el=>el.style.display=(!isHemi&&!isDM)?'':'none');
+  document.querySelectorAll('.dm-liner-field').forEach(el=>el.style.display=isDM?'':'none');
+  setImplants(p.implant);
+  calcDur();
+  document.getElementById('form-mode-label').textContent='編輯：'+p.name;
+  switchTab('add',1);
+}
+
+function deletePatient(){
+  if(!confirm('確定要刪除此病人資料？'))return;
+  patients=patients.filter(x=>x.id!==viewingId);
+  save();closeSheet();renderList();renderStats();
+}
+
+function savePatient(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){alert('請輸入病人姓名');return;}
+  const p={id:editingId||uid(),name,
+    pidCch:document.getElementById('f-pid-cch').value.trim(),
+    pidYl:document.getElementById('f-pid-yl').value.trim(),
+    pidLg:document.getElementById('f-pid-lg').value.trim(),
+    pidHm:document.getElementById('f-pid-hm').value.trim(),
+    age:document.getElementById('f-age').value,
+    sex:document.getElementById('f-sex').value,
+    proxy:document.getElementById('f-proxy').value||'無',
+    surgtype:document.getElementById('f-surgtype').value||'THA',
+    dx:document.getElementById('f-dx').value,
+    lld:document.getElementById('f-lld').value,
+    location:document.getElementById('f-location').value,
+    start:document.getElementById('f-start').value,
+    end:document.getElementById('f-end').value,
+    side:document.getElementById('f-side').value,
+    approach:document.getElementById('f-approach').value,
+    robotic:document.getElementById('f-robotic').value||'一般',
+    brand:document.getElementById('f-brand').value,
+    cupL:document.getElementById('f-cup-l').value,
+    shellL:document.getElementById('f-shell-l').value,
+    dmLinerL:document.getElementById('f-dm-liner-l').value,
+    stemL:document.getElementById('f-stem-l').value,
+    headL:document.getElementById('f-head-l').value,
+    neckL:document.getElementById('f-neck-l').value,
+    linerL:document.getElementById('f-liner-l').value,
+    cupR:document.getElementById('f-cup-r').value,
+    shellR:document.getElementById('f-shell-r').value,
+    dmLinerR:document.getElementById('f-dm-liner-r').value,
+    stemR:document.getElementById('f-stem-r').value,
+    headR:document.getElementById('f-head-r').value,
+    neckR:document.getElementById('f-neck-r').value,
+    linerR:document.getElementById('f-liner-r').value,
+    fixation:document.getElementById('f-fixation').value,
+    bearing:document.getElementById('f-bearing').value,
+    gtav:document.getElementById('f-gtav').value||'無',
+    implant:getImplants(),
+    complication:document.getElementById('f-complication').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),
+  };
+  if(editingId){const i=patients.findIndex(x=>x.id===editingId);if(i!==-1)patients[i]=p;editingId=null;}
+  else patients.push(p);
+  save();clearForm();
+  const msg=document.getElementById('form-msg');msg.style.display='block';
+  setTimeout(()=>msg.style.display='none',2000);
+  renderList();
+}
+
+function clearForm(){
+  ['f-name','f-pid-cch','f-pid-yl','f-pid-lg','f-pid-hm','f-age','f-sex','f-lld','f-start','f-end','f-side','f-approach',
+   'f-cup-l','f-shell-l','f-dm-liner-l','f-stem-l','f-head-l','f-neck-l','f-liner-l',
+   'f-cup-r','f-shell-r','f-dm-liner-r','f-stem-r','f-head-r','f-neck-r','f-liner-r',
+   'f-complication','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['proxy-group','surgtype-group','dx-group','location-group','robotic-group','brand-group','fixation-group','bearing-group','gtav-group'].forEach(g=>document.querySelectorAll('#'+g+' .tgl').forEach(b=>b.classList.remove('on')));
+  ['f-dx','f-location','f-brand','f-fixation','f-bearing'].forEach(id=>document.getElementById(id).value='');
+  // reset surgtype to THA
+  const stBtns=document.querySelectorAll('#surgtype-group .tgl');
+  stBtns[0].classList.add('on');
+  document.getElementById('f-surgtype').value='THA';
+  // reset gtav to 無
+  const gtBtns=document.querySelectorAll('#gtav-group .tgl');
+  gtBtns[0].classList.add('on');
+  document.getElementById('f-gtav').value='無';
+  // reset field visibility to default THA
+  document.querySelectorAll('.cup-field,.liner-field').forEach(el=>el.style.display='');
+  document.querySelectorAll('.shell-field,.dm-liner-field').forEach(el=>el.style.display='none');
+  // reset proxy to 無
+  const pxBtns=document.querySelectorAll('#proxy-group .tgl');
+  pxBtns[0].classList.add('on');
+  document.getElementById('f-proxy').value='無';
+  // reset robotic to 一般
+  const rBtns=document.querySelectorAll('#robotic-group .tgl');
+  rBtns[0].classList.add('on');
+  document.getElementById('f-robotic').value='一般';
+  setImplants({});
+  document.getElementById('dur-display').textContent='— 分鐘';editingId=null;
+  document.getElementById('form-mode-label').textContent='新增一位 THR 病人';
+}
+
+function dc(key){if(charts[key]){charts[key].destroy();charts[key]=null;}}
+function mkBar(id,labels,data,colors){
+  dc(id);
+  charts[id]=new Chart(document.getElementById('chart-'+id),{
+    type:'bar',data:{labels,datasets:[{data,backgroundColor:colors||'#534AB7',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11}}},x:{ticks:{autoSkip:false,maxRotation:30,font:{size:11}}}}}
+  });
+}
+
+function renderStats(){
+  const total=patients.length;
+  const durs=patients.map(p=>getDur(p)).filter(Boolean);
+  const avg=durs.length?Math.round(durs.reduce((a,b)=>a+b,0)/durs.length):null;
+  const female=patients.filter(p=>p.sex==='女').length;
+  const compl=patients.filter(p=>p.complication&&p.complication!=='無特殊').length;
+  const robotic=patients.filter(p=>p.robotic==='Robotic').length;
+  document.getElementById('metrics-row').innerHTML=`
+    <div class="metric"><div class="ml">總病人數</div><div class="mv">${total}</div></div>
+    <div class="metric"><div class="ml">平均手術時間</div><div class="mv">${avg||'—'}</div><div class="ms">分鐘</div></div>
+    <div class="metric"><div class="ml">最短/最長</div><div class="mv" style="font-size:16px">${durs.length?Math.min(...durs)+'/'+Math.max(...durs):'—'}</div><div class="ms">分鐘</div></div>
+    <div class="metric"><div class="ml">女性比例</div><div class="mv">${total?Math.round(female/total*100):0}%</div></div>
+    <div class="metric"><div class="ml">Robotic</div><div class="mv">${robotic}</div><div class="ms">位</div></div>
+    <div class="metric"><div class="ml">有併發症</div><div class="mv">${compl}</div><div class="ms">位</div></div>
+  `;
+
+  // 診斷
+  const dxList=['OA','AVN','DDH','Fracture','RA','Septic','Revision'];
+  const dxC=Object.fromEntries(dxList.map(d=>[d,0]));
+  patients.forEach(p=>{if(p.dx&&dxC[p.dx]!==undefined)dxC[p.dx]++;});
+  mkBar('dx',Object.keys(dxC),Object.values(dxC),'#3C3489');
+
+  // 開刀地點
+  const locs=['彰基','員林','鹿港','漢銘'],lc=Object.fromEntries(locs.map(l=>[l,0]));
+  patients.forEach(p=>{if(p.location&&lc[p.location]!==undefined)lc[p.location]++;});
+  mkBar('location',Object.keys(lc),Object.values(lc),['#7C3AED','#A78BFA','#C4B5FD','#DDD6FE']);
+
+  // 手術時間
+  const dB={'<60':0,'60–89':0,'90–119':0,'120–149':0,'150+':0};
+  durs.forEach(d=>{if(d<60)dB['<60']++;else if(d<90)dB['60–89']++;else if(d<120)dB['90–119']++;else if(d<150)dB['120–149']++;else dB['150+']++;});
+  mkBar('dur',Object.keys(dB),Object.values(dB),'#534AB7');
+
+  // 廠牌
+  const bl=['Zimmer','United','Stryker'];
+  const bc=Object.fromEntries(bl.map(b=>[b,0]));
+  patients.forEach(p=>{if(p.brand&&bc[p.brand]!==undefined)bc[p.brand]++;});
+  mkBar('brand',Object.keys(bc),Object.values(bc),['#3C3489','#534AB7','#7F77DD']);
+
+  // Cup size
+  const cupSizes=['46','48','50','52','54','56','58','60','62','64','66'];
+  const cupC=Object.fromEntries(cupSizes.map(s=>[s,0]));
+  patients.forEach(p=>{if(p.cupL&&cupC[p.cupL]!==undefined)cupC[p.cupL]++;if(p.cupR&&cupC[p.cupR]!==undefined)cupC[p.cupR]++;});
+  mkBar('cup',Object.keys(cupC),Object.values(cupC),'#378ADD');
+
+  // Stem - dynamic based on what's been used
+  const stemC={};
+  patients.forEach(p=>{
+    if(p.stemL)stemC[p.stemL]=(stemC[p.stemL]||0)+1;
+    if(p.stemR)stemC[p.stemR]=(stemC[p.stemR]||0)+1;
+  });
+  // sort numerically
+  const stemKeys=Object.keys(stemC).sort((a,b)=>parseFloat(a)-parseFloat(b));
+  mkBar('stem',stemKeys.length?stemKeys:['尚無資料'],stemKeys.length?stemKeys.map(k=>stemC[k]):[0],'#1D9E75');
+
+  // Head
+  const headSizes=['28','32','36','40','44'];
+  const headC=Object.fromEntries(headSizes.map(s=>[s,0]));
+  patients.forEach(p=>{if(p.headL&&headC[p.headL]!==undefined)headC[p.headL]++;if(p.headR&&headC[p.headR]!==undefined)headC[p.headR]++;});
+  mkBar('head',Object.keys(headC),Object.values(headC),'#D85A30');
+
+  // Approach
+  const apps={};patients.forEach(p=>{if(p.approach)apps[p.approach]=(apps[p.approach]||0)+1;});
+  mkBar('approach',Object.keys(apps).length?Object.keys(apps):['尚無資料'],Object.keys(apps).length?Object.values(apps):[0],'#3C3489');
+
+  // Fixation
+  const fix={'Cementless':0,'Cemented':0,'Hybrid':0};
+  patients.forEach(p=>{if(p.fixation&&fix[p.fixation]!==undefined)fix[p.fixation]++;});
+  mkBar('fixation',Object.keys(fix),Object.values(fix),['#1D9E75','#D85A30','#378ADD']);
+
+  // Bearing
+  const brg={'Ceramic-Poly':0,'Metal-Poly':0,'Ceramic-Ceramic':0};
+  patients.forEach(p=>{if(p.bearing&&brg[p.bearing]!==undefined)brg[p.bearing]++;});
+  mkBar('bearing',Object.keys(brg),Object.values(brg),['#378ADD','#EF9F27','#1D9E75']);
+
+  // Side
+  const sides={'左髖':0,'右髖':0,'雙髖（同期）':0};
+  patients.forEach(p=>{if(p.side&&sides[p.side]!==undefined)sides[p.side]++;});
+  mkBar('side',Object.keys(sides),Object.values(sides),['#378ADD','#EF9F27','#1D9E75']);
+}
+
+function exportCSV(){
+  if(!patients.length){alert('目前沒有資料可以匯出');return;}
+  const h=['姓名','病歷號','年齡','性別','代工手術','手術類型','診斷','LLD(cm)','開刀地點','手術開始','手術結束','手術時間(分鐘)','手術方式','側別','Approach','廠牌','左髖Cup(mm)','左髖Shell(mm)','左髖DM Liner(mm)','左髖Stem','左髖Head(mm)','左髖Neck','左髖Liner','右髖Cup(mm)','右髖Shell(mm)','右髖DM Liner(mm)','右髖Stem','右髖Head(mm)','右髖Neck','右髖Liner','固定方式','Bearing 組合','Spongostan','Surgicel','1-O魚骨線','4-O羽毛線','GT Avulsion','併發症/追蹤','備註'];
+  const rows=patients.map(p=>{
+    const pids=[p.pidCch&&'彰基:'+p.pidCch,p.pidYl&&'員林:'+p.pidYl,p.pidLg&&'鹿港:'+p.pidLg,p.pidHm&&'漢銘:'+p.pidHm].filter(Boolean).join(' / ');
+    const imp=p.implant||{};
+    return[p.name,pids,p.age,p.sex,p.proxy||'無',p.surgtype||'THA',p.dx,p.lld,p.location,p.start,p.end,getDur(p)||'',p.robotic||'一般',p.side,p.approach,p.brand,p.cupL,p.shellL,p.dmLinerL,p.stemL,p.headL,p.neckL,p.linerL,p.cupR,p.shellR,p.dmLinerR,p.stemR,p.headR,p.neckR,p.linerR,p.fixation,p.bearing,imp.spongostan||0,imp.surgicel||0,imp.fish||0,imp.feather||0,p.gtav||'無',p.complication,p.notes].map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"');
+  });
+  const csv=[h.join(','),...rows.map(r=>r.join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='THR_病人資料.csv';a.click();
+}
+
+load();
+</script>
+</body>
+</html>
